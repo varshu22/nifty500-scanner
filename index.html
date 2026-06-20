@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>N5 Insight — Nifty 500 Daily Read</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0B0F14; --surface:#121823; --surface2:#1A2230; --line:#222D3D;
+  --ink:#E9EEF5; --muted:#7E8A99; --faint:#55606E;
+  --long:#27DB92; --short:#FF5470; --gold:#F2B824; --teal:#39C7DA; --violet:#A78BFA; --amber:#FFB547;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:15px}
+body{background:var(--bg);color:var(--ink);font-family:'Sora',system-ui,sans-serif;min-height:100vh;padding-bottom:90px}
+.mono{font-family:'IBM Plex Mono',monospace}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+
+header{position:sticky;top:0;z-index:50;background:rgba(11,15,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hbar{display:flex;align-items:center;gap:10px;padding:12px 14px;max-width:560px;margin:0 auto}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--teal),var(--long));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;color:#04110B;flex:none}
+.hname{font-weight:800;font-size:1rem}
+.hdate{font-size:.68rem;color:var(--muted)}
+.hsearch{margin-left:auto}
+#q{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 11px;width:118px;font-size:.78rem;font-family:'IBM Plex Mono',monospace;outline:none;transition:width .2s}
+#q:focus{width:148px;border-color:var(--teal)}
+
+.upload{margin:18px 0;border:1.5px dashed #2C3A4E;border-radius:var(--r);padding:34px 20px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .2s}
+.upload.drag{border-color:var(--long)}
+.upload h2{font-size:1.02rem;margin-bottom:6px}
+.upload p{color:var(--muted);font-size:.78rem;line-height:1.55}
+.upload .pill{display:inline-block;margin-top:14px;background:linear-gradient(135deg,var(--teal),var(--long));color:#04110B;font-weight:700;font-size:.82rem;padding:10px 22px;border-radius:99px}
+#file,#yfile{display:none}
+.note{color:var(--faint);font-size:.68rem;margin-top:10px}
+#err{display:none;margin:10px 0;padding:12px 14px;border-radius:10px;background:#2A1620;color:#FF9FB0;font-size:.78rem;line-height:1.5}
+.ybtn{display:block;width:100%;margin:0 0 14px;background:var(--surface);border:1px dashed #2C3A4E;color:var(--teal);font-family:inherit;font-weight:600;font-size:.76rem;padding:11px;border-radius:11px;cursor:pointer}
+
+.verdict{margin:16px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.verdict .top{padding:16px 16px 12px}
+.eyebrow{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.gradechip{margin-left:auto;font-size:.72rem;font-weight:800;padding:4px 11px;border-radius:8px;letter-spacing:.02em}
+.gA{background:rgba(39,219,146,.15);color:var(--long)}
+.gB{background:rgba(242,184,36,.15);color:var(--gold)}
+.gC{background:rgba(255,84,112,.15);color:var(--short)}
+.vtext{font-size:.92rem;line-height:1.6}
+.vtext b{font-weight:700}
+.c-long{color:var(--long)}.c-short{color:var(--short)}.c-gold{color:var(--gold)}.c-teal{color:var(--teal)}.c-amber{color:var(--amber)}
+.pressure{height:9px;display:flex;border-radius:99px;overflow:hidden;margin:13px 16px 5px;background:var(--surface2)}
+.pressure>i{display:block;height:100%}
+.plabels{display:flex;justify-content:space-between;padding:0 16px 13px;font-size:.66rem;color:var(--muted)}
+.vstats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.vstats>div{padding:11px 6px;text-align:center;border-right:1px solid var(--line)}
+.vstats>div:last-child{border-right:0}
+.vstats .n{font-size:1.05rem;font-weight:600}
+.vstats .l{font-size:.6rem;color:var(--muted);margin-top:3px;letter-spacing:.04em;text-transform:uppercase}
+.guard{margin:0 16px 14px;padding:12px 14px;border-radius:11px;font-size:.8rem;line-height:1.55;font-weight:600}
+.guard.stop{background:rgba(255,84,112,.1);border:1px solid rgba(255,84,112,.3);color:#FF9FB0}
+.guard.go{background:rgba(39,219,146,.08);border:1px solid rgba(39,219,146,.25);color:#9FE8C8}
+.changed{margin:0 16px 14px;padding:11px 13px;border-radius:11px;background:rgba(57,199,218,.07);border:1px solid rgba(57,199,218,.22);font-size:.74rem;line-height:1.6;color:#A8DEE7}
+
+section{margin:22px 0}
+.shead{display:flex;align-items:baseline;gap:9px;margin-bottom:11px}
+.shead h3{font-size:.95rem;font-weight:700}
+.count{font-size:.7rem;color:var(--muted);font-weight:500}
+.shead .hint{margin-left:auto;font-size:.66rem;color:var(--faint)}
+
+/* today's 5 */
+.capline{display:flex;align-items:center;gap:8px;margin-bottom:11px;font-size:.72rem;color:var(--muted)}
+#cap{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:7px 10px;width:120px;font-size:.76rem;outline:none}
+#cap:focus{border-color:var(--teal)}
+.t5{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--long);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;cursor:pointer;position:relative}
+.t5.short{border-left-color:var(--short)}
+.rank{position:absolute;top:13px;right:13px;font-size:.62rem;color:var(--faint);font-weight:700}
+.plan{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.plan>div{background:var(--surface2);border-radius:9px;padding:8px 6px;text-align:center}
+.plan .pl{font-size:.55rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.plan .pv{font-size:.76rem;font-weight:600;margin-top:3px}
+.plan .pr{font-size:.56rem;color:var(--faint);margin-top:2px}
+.qty{margin-top:8px;font-size:.7rem;color:var(--teal);font-weight:600}
+.pnote{margin-top:7px;font-size:.68rem;color:var(--muted);line-height:1.5}
+.trap{margin-top:8px;font-size:.7rem;color:var(--amber);line-height:1.55}
+.trap::before{content:'⚠ '}
+
+.pick{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--long);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;cursor:pointer}
+.pick.short{border-left-color:var(--short)}
+.prow{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.psym{font-weight:600;font-size:.95rem}
+.psec{font-size:.62rem;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:99px;white-space:nowrap}
+.badge{font-size:.56rem;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.05em}
+.bnew{background:rgba(39,219,146,.16);color:var(--long)}
+.brep{background:var(--surface2);color:var(--faint)}
+.pltp{margin-left:auto;text-align:right}
+.pltp .v{font-size:.9rem;font-weight:600}
+.pltp .c{font-size:.7rem;font-weight:600}
+.spark{margin:9px 0 7px}
+.why{font-size:.76rem;color:#B9C3D0;line-height:1.55}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chip{font-size:.6rem;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--surface2);color:var(--muted)}
+.chip.on-long{background:rgba(39,219,146,.13);color:var(--long)}
+.chip.on-short{background:rgba(255,84,112,.13);color:var(--short)}
+.chip.on-gold{background:rgba(242,184,36,.13);color:var(--gold)}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted);font-size:.78rem;text-align:center;line-height:1.6}
+
+.rows{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer}
+.row:last-child{border-bottom:0}
+.row .sym{font-weight:600;font-size:.84rem;min-width:86px}
+.row .tag{font-size:.64rem;color:var(--muted);flex:1;line-height:1.45;min-width:0}
+.row .right{text-align:right;flex:none}
+.row .rv{font-size:.78rem;font-weight:600}
+.row .rs{font-size:.62rem;color:var(--muted)}
+.more{width:100%;background:none;border:0;border-top:1px solid var(--line);color:var(--teal);font-family:inherit;font-size:.72rem;font-weight:600;padding:11px;cursor:pointer}
+
+details.acc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+details.acc summary{list-style:none;display:flex;align-items:center;gap:9px;padding:13px 14px;cursor:pointer;font-size:.84rem;font-weight:600}
+details.acc summary::-webkit-details-marker{display:none}
+details.acc summary .cnt{margin-left:auto;font-size:.68rem;color:var(--muted);font-weight:500}
+details.acc summary .chev{color:var(--faint);transition:transform .2s;font-size:.7rem}
+details.acc[open] summary .chev{transform:rotate(90deg)}
+.dot{width:8px;height:8px;border-radius:99px;flex:none}
+
+.sec-row{display:flex;align-items:center;gap:10px;padding:8px 14px}
+.sec-row .nm{font-size:.74rem;width:128px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec-bar{flex:1;height:7px;background:var(--surface2);border-radius:99px;position:relative;overflow:hidden}
+.sec-bar i{position:absolute;top:0;height:100%}
+.sec-row .pct{font-size:.68rem;width:46px;text-align:right;font-weight:600}
+
+#overlay{position:fixed;inset:0;background:rgba(4,7,11,.7);z-index:90;display:none}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:100;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--line);max-height:86vh;overflow-y:auto;transform:translateY(105%);transition:transform .26s ease;padding:8px 16px 34px;max-width:560px;margin:0 auto}
+#sheet.open{transform:translateY(0)}
+.grab{width:42px;height:4px;border-radius:99px;background:var(--line);margin:6px auto 14px}
+.sh-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sh-head h2{font-size:1.25rem}
+.modgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.mod{background:var(--surface2);border-radius:11px;padding:10px 11px;border-top:2.5px solid var(--faint)}
+.mod .ml{font-size:.58rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.mod .mv{font-size:.76rem;font-weight:700;margin-top:4px}
+.mod .ms{font-size:.62rem;color:var(--muted);margin-top:3px}
+.rsibar{height:8px;border-radius:99px;background:var(--surface2);position:relative;margin-top:6px}
+.rsibar i{position:absolute;top:0;left:0;height:100%;border-radius:99px}
+.rsibar b{position:absolute;top:-3px;width:2px;height:14px;background:#fff;opacity:.45}
+.kv{display:flex;justify-content:space-between;font-size:.76rem;padding:7px 0;border-bottom:1px solid var(--line)}
+.kv span:first-child{color:var(--muted)}
+.cstrip{display:flex;gap:6px;margin:10px 0}
+.cbox{flex:1;background:var(--surface2);border-radius:9px;padding:8px 4px;text-align:center}
+.cbox .ci{font-size:1rem}
+.cbox .cl{font-size:.55rem;color:var(--muted);margin-top:3px;line-height:1.3}
+.patbox{background:rgba(57,199,218,.08);border:1px solid rgba(57,199,218,.25);border-radius:11px;padding:11px 13px;margin:9px 0;font-size:.76rem;line-height:1.55}
+.rembox{background:rgba(242,184,36,.07);border:1px solid rgba(242,184,36,.22);border-radius:11px;padding:11px 13px;margin:9px 0;font-size:.74rem;color:#E8CD8A;line-height:1.5}
+.trapbox{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.25);border-radius:11px;padding:11px 13px;margin:9px 0;font-size:.74rem;color:var(--amber);line-height:1.55}
+h4.sub{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+
+#results{display:none}
+footer{margin:34px 0 10px;text-align:center;color:var(--faint);font-size:.64rem;line-height:1.7}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <div class="logo">N5</div>
+    <div>
+      <div class="hname">N5 Insight</div>
+      <div class="hdate mono" id="hdate">loading…</div>
+    </div>
+    <div class="hsearch"><input id="q" class="mono" placeholder="symbol…" autocomplete="off" style="display:none"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="upload" id="drop" onclick="document.getElementById('file').click()">
+    <h2>Drop today's scanner file</h2>
+    <p>Data auto-loads from GitHub. Use this only if you want to test a different file.<br>Everything runs on your phone — nothing is uploaded anywhere.</p>
+    <span class="pill">Choose file</span>
+    <div class="note">Today's 5 with trade plans · day grade · trap flags · 4-module confluence · patterns · sector pulse</div>
+  </div>
+  <input type="file" id="file" accept=".xlsx,.xls">
+  <input type="file" id="yfile" accept=".xlsx,.xls">
+  <div id="err"></div>
+
+  <div id="results">
+
+    <div class="verdict">
+      <div class="top">
+        <div class="eyebrow"><span>Today's read</span><span class="gradechip" id="gchip"></span></div>
+        <div class="vtext" id="vtext"></div>
+      </div>
+      <div class="guard" id="guard" style="display:none"></div>
+      <div class="changed" id="changed" style="display:none"></div>
+      <div class="pressure" id="pbar"></div>
+      <div class="plabels"><span id="plL"></span><span id="plR"></span></div>
+      <div class="vstats" id="vstats"></div>
+    </div>
+
+    <button class="ybtn" id="ybtn" onclick="document.getElementById('yfile').click()">＋ Add yesterday's file — see what's fresh vs stale</button>
+
+    <section>
+      <div class="shead"><h3 class="c-gold">★ Today's 5</h3><span class="count" id="cT5"></span><span class="hint">highest conviction · plans from closing data</span></div>
+      <div class="capline">Capital ₹ <input id="cap" class="mono" inputmode="numeric" placeholder="e.g. 200000"> <span>→ qty at 1% risk</span></div>
+      <div id="today5"></div>
+    </section>
+
+    <section>
+      <div class="shead"><h3 class="c-long">▲ Confirmed Long</h3><span class="count" id="cLong"></span><span class="hint">strict 4-module pass</span></div>
+      <div id="longs"></div>
+    </section>
+
+    <section>
+      <div class="shead"><h3 class="c-short">▼ Confirmed Short</h3><span class="count" id="cShort"></span><span class="hint">strict 4-module pass</span></div>
+      <div id="shorts"></div>
+    </section>
+
+    <section>
+      <div class="shead"><h3 class="c-teal">◎ Early Detection Watchlist</h3><span class="count" id="cWatch"></span><span class="hint">best pattern per stock</span></div>
+      <div id="watch"></div>
+    </section>
+
+    <section>
+      <div class="shead"><h3>EMA Crosses</h3><span class="hint">fresh ≤2.5% separation</span></div>
+      <div id="emaAcc"></div>
+    </section>
+
+    <section>
+      <div class="shead"><h3>Pattern Buckets</h3></div>
+      <div id="patAcc"></div>
+    </section>
+
+    <section>
+      <div class="shead"><h3>Sector Pulse</h3><span class="hint">% bullish − % bearish trend</span></div>
+      <div class="rows" id="sectors" style="padding:6px 0"></div>
+    </section>
+
+  </div>
+
+  <footer>N5 Insight · runs entirely in your browser · RSI ≤75 long / ≥25 short · strict confluence · plans use a close-to-close range proxy — refine entries on the live chart.<br>Analysis tool, not investment advice.</footer>
+</div>
+
+<div id="overlay" onclick="closeSheet()"></div>
+<div id="sheet"></div>
+
+<script>
+/* ═══════════ ENGINE ═══════════ */
+// N5 Insight Engine — ports the 4-module confluence system, EMA cross buckets,
+// and 7 structural patterns to client-side JS.
+(function (root) {
+  const num = v => (v === null || v === undefined || v === '' || isNaN(+v)) ? null : +v;
+  const str = v => (v === null || v === undefined) ? '' : String(v).trim();
+
+  const isBullCandle = c => /bullish|hammer/i.test(c);
+  const isBearCandle = c => /bearish|shooting/i.test(c);
+  const isMaru = c => /marubozu/i.test(c);
+  const isDoji = c => /doji/i.test(c);
+
+  function slope(ys) {
+    const n = ys.length;
+    if (n < 3) return 0;
+    const xs = ys.map((_, i) => i);
+    const mx = (n - 1) / 2, my = ys.reduce((a, b) => a + b, 0) / n;
+    let nu = 0, de = 0;
+    for (let i = 0; i < n; i++) { nu += (xs[i] - mx) * (ys[i] - my); de += (xs[i] - mx) ** 2; }
+    return de ? nu / de : 0;
+  }
+
+  function parseRow(r, candleCols) {
+    const D = [];
+    for (let i = 1; i <= 21; i++) { const v = num(r['D' + i]); if (v !== null) D.push(v); }
+    return {
+      symbol: str(r.Symbol).replace(/\.NS$/i, ''),
+      sector: str(r.Sector) || 'Other',
+      openHigh: str(r['Open=High']).toLowerCase() === 'yes',
+      openLow: str(r['Open=Low']).toLowerCase() === 'yes',
+      D,
+      ltp: num(r.D_LTP),
+      avg21: num(r.Avg_21D),
+      max21: num(r.D_Max_21),
+      min21: num(r.D_Min_21),
+      gapMax: num(r['D_Gap_Max_LTP_%']),
+      gapMin: num(r['D_Gap_Min_LTP_%']),
+      pos: str(r.D_LTP_Position),
+      dayCandle: str(r['Day Live Candle']),
+      last30: str(r.Last_30min_Candle),
+      candles: candleCols.map(c => str(r[c])), // C1..C4, oldest→newest
+      chg: num(r['LTP_vs_PrevDayClose_%']),
+      rsiD: num(r.RSI_Daily),
+      rsiW: num(r.RSI_Weekly),
+      ema9: num(r.EMA9),
+      ema50: num(r.EMA50),
+      emaDelta: num(r['EMA9_vs_EMA50_%'])
+    };
+  }
+
+  // ── M1 TREND ──
+  function m1(s) {
+    let bull = 0, bear = 0;
+    if (s.ltp !== null && s.ema9 !== null) (s.ltp > s.ema9 ? bull++ : bear++);
+    if (s.ltp !== null && s.ema50 !== null) (s.ltp > s.ema50 ? bull++ : bear++);
+    if (s.emaDelta !== null) (s.emaDelta > 0 ? bull++ : bear++);
+    if (s.D.length >= 10) {
+      const sl = slope(s.D) / (s.avg21 || s.D[0] || 1) * 100; // % per day
+      if (sl > 0.05) bull++; else if (sl < -0.05) bear++;
+      s.slopePct = sl;
+    }
+    if (s.pos === 'Above Max') bull++; else if (s.pos === 'Below Min') bear++;
+    let out = 'SIDEWAYS';
+    if (bull >= 4 && bull > bear + 1) out = 'BULLISH';
+    else if (bear >= 4 && bear > bull + 1) out = 'BEARISH';
+    return { out, bull, bear };
+  }
+
+  // ── M2 MOMENTUM ──
+  function m2(s) {
+    const dz = s.rsiD === null ? 'neutral' : s.rsiD > 60 ? 'bull' : s.rsiD < 40 ? 'bear' : 'neutral';
+    const wz = s.rsiW === null ? 'neutral' : s.rsiW > 55 ? 'bull' : s.rsiW < 45 ? 'bear' : 'neutral';
+    if (dz === 'bull' && wz === 'bull') return 'STRONG BULLISH';
+    if (dz === 'bear' && wz === 'bear') return 'STRONG BEARISH';
+    if ((dz === 'bull' && wz === 'neutral') || (dz === 'neutral' && wz === 'bull')) return 'MODERATE BULLISH';
+    if ((dz === 'bear' && wz === 'neutral') || (dz === 'neutral' && wz === 'bear')) return 'MODERATE BEARISH';
+    return 'NEUTRAL';
+  }
+
+  // ── M3 CANDLE STRUCTURE ──
+  function m3(s) {
+    const w = [0.5, 0.75, 1.0, 1.5];
+    let score = 0;
+    s.candles.forEach((c, i) => {
+      let v = 0;
+      if (isBullCandle(c)) v = w[i];
+      else if (isBearCandle(c)) v = -w[i];
+      if (isMaru(c)) v *= 2;
+      score += v;
+    });
+    const dojis = s.candles.slice(1).filter(isDoji).length;
+    let out = 'MIXED';
+    if (dojis >= 2) out = 'WARN';
+    else if (score >= 2.5) out = 'BULLISH CONFIRM';
+    else if (score <= -2.5) out = 'BEARISH CONFIRM';
+    return { out, score: +score.toFixed(2) };
+  }
+
+  // ── M4 INTRADAY ──
+  function m4(s) {
+    const c = s.last30 && s.last30 !== 'Flat' ? s.last30 : s.dayCandle;
+    if (s.openLow && isBullCandle(c)) return 'STRONG LONG';
+    if (s.openHigh && isBearCandle(c)) return 'STRONG SHORT';
+    if (s.openLow || isBullCandle(c)) return 'LONG READY';
+    if (s.openHigh || isBearCandle(c)) return 'SHORT READY';
+    return 'WAIT';
+  }
+
+  function confluence(s) {
+    const longPass = s.m1.out === 'BULLISH'
+      && /BULLISH/.test(s.m2)
+      && s.m3.out === 'BULLISH CONFIRM'
+      && /LONG/.test(s.m4)
+      && s.rsiD !== null && s.rsiD <= 75;
+    const shortPass = s.m1.out === 'BEARISH'
+      && /BEARISH/.test(s.m2)
+      && s.m3.out === 'BEARISH CONFIRM'
+      && /SHORT/.test(s.m4)
+      && s.rsiD !== null && s.rsiD >= 25;
+    return longPass ? 'LONG' : shortPass ? 'SHORT' : null;
+  }
+
+  function emaBucket(s) {
+    const d = s.emaDelta;
+    if (d === null) return null;
+    if (d > 0 && d <= 2.5 && (s.m1.out === 'BULLISH' || s.m1.out === 'SIDEWAYS')) return 'GOLDEN';
+    if (d < 0 && d >= -2.5 && (s.m1.out === 'BEARISH' || s.m1.out === 'SIDEWAYS')) return 'DEATH';
+    if (d > 2.5 && s.m1.out === 'BULLISH') return 'BULL_ALIGN';
+    if (d < -2.5 && s.m1.out === 'BEARISH') return 'BEAR_ALIGN';
+    return null;
+  }
+
+  // ── 7 STRUCTURAL PATTERNS ──
+  function patterns(s) {
+    const out = [];
+    const D = s.D;
+    if (D.length < 21) return out;
+    const start = D[0], rsi = s.rsiD;
+
+    // 1. Cup & Handle
+    (function () {
+      const seg = D.slice(0, 16);
+      const trough = Math.min(...seg);
+      const ti = seg.indexOf(trough);
+      const rim = Math.max(seg[0], seg[15]);
+      const depth = (rim - trough) / rim * 100;
+      if (ti >= 2 && ti <= 11 && depth >= 8 && depth <= 40 && (rsi === null || rsi < 68)) {
+        const handle = D.slice(16, 19);
+        const hRange = (Math.max(...handle) - Math.min(...handle)) / Math.min(...handle) * 100;
+        const rimGap = Math.abs(seg[0] - seg[15]) / rim * 100;
+        const nearRim = Math.min(D[19], D[20]) >= trough + (rim - trough) * 0.7;
+        if (hRange < 8 && nearRim) {
+          const score = (10 - rimGap) * 0.3 + Math.min(depth, 25) * 0.1 + (8 - hRange) * 0.3
+            + (1 - Math.abs(rim - s.ltp) / rim) * 3;
+          out.push({ id: 'cup', name: 'Cup & Handle', score, detail: `Depth ${depth.toFixed(1)}% · handle range ${hRange.toFixed(1)}% · rim ₹${rim.toFixed(1)}`, dir: 'long' });
+        }
+      }
+    })();
+
+    // 2. V-Recovery
+    (function () {
+      const low = Math.min(...D);
+      const li = D.indexOf(low);
+      const drop = (start - low) / start * 100;
+      if (drop >= 7 && li <= 12) {
+        const rec = (s.ltp - low) / (start - low) * 100;
+        if (rec >= 60) {
+          const score = drop * 0.15 + rec * 0.04 + (s.ltp >= start ? 1.5 : 0);
+          out.push({ id: 'vrec', name: 'V-Recovery', score, detail: `Fell ${drop.toFixed(1)}%, recovered ${Math.min(rec, 150).toFixed(0)}% of the drop`, dir: 'long' });
+        }
+      }
+    })();
+
+    // 3. Rectangle
+    (function () {
+      const seg = D.slice(6); // last 15
+      const hi = Math.max(...seg), lo = Math.min(...seg);
+      const band = (hi - lo) / lo * 100;
+      if (band >= 3.5 && band <= 9 && rsi !== null && rsi >= 35 && rsi <= 65) {
+        const inBand = seg.filter(v => v >= lo && v <= hi).length / seg.length;
+        if (inBand >= 0.8) {
+          let flag = '';
+          if ((hi - s.ltp) / hi * 100 < 2) flag = 'Near resistance';
+          else if ((s.ltp - lo) / lo * 100 < 2) flag = 'Near support';
+          const score = (9 - band) * 0.4 + (flag ? 2 : 0);
+          out.push({ id: 'rect', name: 'Rectangle', score, detail: `${band.toFixed(1)}% band ₹${lo.toFixed(1)}–₹${hi.toFixed(1)}${flag ? ' · ' + flag : ''}`, dir: flag === 'Near support' ? 'long' : flag === 'Near resistance' ? 'watch' : 'watch', flag });
+        }
+      }
+    })();
+
+    // 4 & 5. Triangles
+    (function () {
+      const segs = [D.slice(0, 7), D.slice(7, 14), D.slice(14, 21)];
+      const lows = segs.map(g => Math.min(...g));
+      const highs = segs.map(g => Math.max(...g));
+      const hiDev = (Math.max(...highs) - Math.min(...highs)) / Math.min(...highs) * 100;
+      const loDev = (Math.max(...lows) - Math.min(...lows)) / Math.min(...lows) * 100;
+      if (lows[0] < lows[1] && lows[1] < lows[2] && hiDev < 6) {
+        const rise = (lows[2] - lows[0]) / lows[0] * 100;
+        const gap = (Math.max(...highs) - s.ltp) / s.ltp * 100;
+        out.push({ id: 'asc', name: 'Ascending Triangle', score: rise * 0.5 + (6 - hiDev) * 0.4 + Math.max(0, 4 - gap), detail: `Higher lows +${rise.toFixed(1)}% · resistance ₹${Math.max(...highs).toFixed(1)} (${gap.toFixed(1)}% away)`, dir: 'long' });
+      }
+      if (highs[0] > highs[1] && highs[1] > highs[2] && loDev < 6) {
+        const fall = (highs[0] - highs[2]) / highs[0] * 100;
+        const gap = (s.ltp - Math.min(...lows)) / s.ltp * 100;
+        out.push({ id: 'desc', name: 'Descending Triangle', score: fall * 0.5 + (6 - loDev) * 0.4 + Math.max(0, 4 - gap), detail: `Lower highs −${fall.toFixed(1)}% · support ₹${Math.min(...lows).toFixed(1)} (${gap.toFixed(1)}% away)`, dir: 'short' });
+      }
+    })();
+
+    // 6. Breakout watch
+    if (s.gapMax !== null && s.gapMax >= -4.5 && rsi !== null && rsi >= 45 && rsi <= 70
+      && s.chg !== null && s.chg > 0 && isBullCandle(s.dayCandle)) {
+      const score = (4.5 + s.gapMax) * 0.8 + (isMaru(s.dayCandle) ? 1.5 : 0.5) + (rsi > 55 ? 1 : 0.5) + Math.min(s.chg, 3);
+      out.push({ id: 'bo', name: 'Breakout Watch', score, detail: `${Math.abs(s.gapMax).toFixed(1)}% below 21-day high ₹${s.max21} · ${s.dayCandle} day`, dir: 'long' });
+    }
+
+    // 7. Breakdown watch
+    if (s.gapMin !== null && s.gapMin <= 7 && s.gapMin >= 0 && rsi !== null && rsi >= 30 && rsi <= 55
+      && s.chg !== null && s.chg < 0 && isBearCandle(s.dayCandle)) {
+      const score = (7 - s.gapMin) * 0.6 + (isMaru(s.dayCandle) ? 1.5 : 0.5) + (rsi < 45 ? 1 : 0.5) + Math.min(-s.chg, 3);
+      out.push({ id: 'bd', name: 'Breakdown Watch', score, detail: `${s.gapMin.toFixed(1)}% above 21-day low ₹${s.min21} · ${s.dayCandle} day`, dir: 'short' });
+    }
+
+    out.forEach(p => p.score = +p.score.toFixed(1));
+    return out;
+  }
+
+  function remarks(s) {
+    const r = [];
+    if (s.rsiD !== null) {
+      if (s.rsiD >= 70) r.push(`RSI overbought (${s.rsiD.toFixed(0)})`);
+      else if (s.rsiD <= 30) r.push(`RSI oversold (${s.rsiD.toFixed(0)})`);
+      else if (s.rsiD >= 60) r.push(`RSI strong (${s.rsiD.toFixed(0)})`);
+      else if (s.rsiD <= 40) r.push(`RSI weak (${s.rsiD.toFixed(0)})`);
+    }
+    if (s.emaDelta !== null && Math.abs(s.emaDelta) <= 2.5 && s.emaDelta !== 0)
+      r.push(`EMA9 ${s.emaDelta > 0 ? 'above' : 'below'} EMA50 by ${s.emaDelta > 0 ? '+' : ''}${s.emaDelta.toFixed(2)}%`);
+    if (s.chg !== null && Math.abs(s.chg) > 2) r.push(`Strong move ${s.chg > 0 ? '+' : ''}${s.chg.toFixed(1)}%`);
+    if (isMaru(s.dayCandle)) r.push(s.dayCandle);
+    return r.join(' | ');
+  }
+
+  function analyze(rows) {
+    const candleCols = Object.keys(rows[0] || {}).filter(k => /^C[1-4]_/.test(k)).sort();
+    const stocks = rows.map(r => parseRow(r, candleCols)).filter(s => s.symbol && s.ltp !== null);
+    stocks.forEach(s => {
+      s.m1 = m1(s); s.m2 = m2(s); s.m3 = m3(s); s.m4 = m4(s);
+      s.pass = confluence(s);
+      s.ema = emaBucket(s);
+      s.patterns = patterns(s);
+      s.remark = remarks(s);
+    });
+
+    const res = {
+      stocks,
+      candleDates: candleCols,
+      long: stocks.filter(s => s.pass === 'LONG').sort((a, b) => b.m3.score - a.m3.score),
+      short: stocks.filter(s => s.pass === 'SHORT').sort((a, b) => a.m3.score - b.m3.score),
+      golden: stocks.filter(s => s.ema === 'GOLDEN').sort((a, b) => b.emaDelta - a.emaDelta),
+      death: stocks.filter(s => s.ema === 'DEATH').sort((a, b) => a.emaDelta - b.emaDelta),
+      bullAlign: stocks.filter(s => s.ema === 'BULL_ALIGN').sort((a, b) => b.emaDelta - a.emaDelta),
+      bearAlign: stocks.filter(s => s.ema === 'BEAR_ALIGN').sort((a, b) => a.emaDelta - b.emaDelta)
+    };
+
+    // pattern buckets
+    res.patternBuckets = {};
+    ['cup', 'vrec', 'rect', 'asc', 'desc', 'bo', 'bd'].forEach(id => {
+      res.patternBuckets[id] = stocks
+        .map(s => { const p = s.patterns.find(x => x.id === id); return p ? { s, p } : null; })
+        .filter(Boolean).sort((a, b) => b.p.score - a.p.score);
+    });
+
+    // breadth + sector pulse
+    const bullT = stocks.filter(s => s.m1.out === 'BULLISH').length;
+    const bearT = stocks.filter(s => s.m1.out === 'BEARISH').length;
+    const aboveE50 = stocks.filter(s => s.ltp > s.ema50).length;
+    const adv = stocks.filter(s => s.chg > 0).length;
+    res.breadth = {
+      total: stocks.length, bullT, bearT, side: stocks.length - bullT - bearT,
+      aboveE50pct: aboveE50 / stocks.length * 100,
+      adv, dec: stocks.filter(s => s.chg < 0).length,
+      avgRsi: stocks.reduce((a, s) => a + (s.rsiD || 50), 0) / stocks.length
+    };
+
+    const secMap = {};
+    stocks.forEach(s => {
+      const m = secMap[s.sector] = secMap[s.sector] || { sector: s.sector, n: 0, bull: 0, bear: 0, chg: 0 };
+      m.n++; if (s.m1.out === 'BULLISH') m.bull++; if (s.m1.out === 'BEARISH') m.bear++; m.chg += (s.chg || 0);
+    });
+    res.sectors = Object.values(secMap).map(m => ({ ...m, net: (m.bull - m.bear) / m.n * 100, avgChg: m.chg / m.n }))
+      .filter(m => m.n >= 3).sort((a, b) => b.net - a.net);
+
+    return res;
+  }
+
+  root.N5Engine = { analyze };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// ═══ v2 additions: conviction, trade plans, traps, day grade, compare ═══
+(function (root) {
+  const E = root.N5Engine;
+
+  function atrProxy(D, ltp) {
+    const arr = D.concat(ltp !== null ? [ltp] : []);
+    if (arr.length < 5) return null;
+    let s = 0, n = 0;
+    for (let i = 1; i < arr.length; i++) { s += Math.abs(arr[i] - arr[i - 1]); n++; }
+    return s / n;
+  }
+
+  function trapFlags(s, secMap) {
+    const f = [];
+    const dir = s.pass || (s.m1.out === 'BULLISH' ? 'LONG' : s.m1.out === 'BEARISH' ? 'SHORT' : null);
+    if (!dir) return f;
+    if (dir === 'LONG') {
+      if (s.gapMax !== null && s.gapMax > -2 && s.pos !== 'Above Max')
+        f.push(`Only ${Math.abs(s.gapMax).toFixed(1)}% below 21D resistance ₹${s.max21}`);
+      if (s.rsiD !== null && s.rsiD >= 70) f.push(`RSI ${s.rsiD.toFixed(0)} — stretched, late entry risk`);
+      if (s.rsiW !== null && s.rsiW < 45) f.push(`Weekly RSI ${s.rsiW.toFixed(0)} still bearish — counter-trend on higher TF`);
+      if (s.chg !== null && s.chg > 3) f.push(`Already +${s.chg.toFixed(1)}% today — chasing risk`);
+      const sec = secMap[s.sector];
+      if (sec && sec.net < -20) f.push(`Against sector: ${s.sector} ${sec.net.toFixed(0)}% net bearish`);
+    } else {
+      if (s.gapMin !== null && s.gapMin < 2 && s.pos !== 'Below Min')
+        f.push(`Only ${s.gapMin.toFixed(1)}% above 21D support ₹${s.min21}`);
+      if (s.rsiD !== null && s.rsiD <= 30) f.push(`RSI ${s.rsiD.toFixed(0)} — oversold, bounce risk`);
+      if (s.rsiW !== null && s.rsiW > 55) f.push(`Weekly RSI ${s.rsiW.toFixed(0)} still bullish — counter-trend on higher TF`);
+      if (s.chg !== null && s.chg < -3) f.push(`Already ${s.chg.toFixed(1)}% today — chasing risk`);
+      const sec = secMap[s.sector];
+      if (sec && sec.net > 20) f.push(`Against sector: ${s.sector} +${sec.net.toFixed(0)}% net bullish`);
+    }
+    const dojis = s.candles.slice(1).filter(c => /doji/i.test(c)).length;
+    if (dojis >= 2) f.push('Indecision: 2+ dojis in last 3 candles');
+    return f;
+  }
+
+  function tradePlan(s, dir) {
+    if (!s.atr || s.ltp === null) return null;
+    const last3 = s.D.slice(-3).concat([s.ltp]);
+    let sl, t1, t2, note = '';
+    if (dir === 'LONG') {
+      const slStruct = Math.min(...last3) - 0.3 * s.atr;
+      sl = Math.max(slStruct, s.ltp - 1.3 * s.atr);
+      if (s.ltp - sl < 0.6 * s.atr) sl = s.ltp - 0.6 * s.atr;
+      const risk = s.ltp - sl;
+      t1 = s.ltp + 1.5 * risk;
+      t2 = s.ltp + 2.5 * risk;
+      if (s.max21 > s.ltp * 1.002 && s.max21 < t1) {
+        t1 = s.max21; t2 = s.ltp + 2.2 * risk;
+        note = `T1 capped at 21D high ₹${s.max21} — trail rest only on breakout`;
+      } else if (s.max21 > t1 && s.max21 < t2) {
+        t2 = s.max21; note = `T2 capped at 21D high ₹${s.max21}`;
+      }
+      return { dir, entry: s.ltp, sl, t1, t2, risk, rr1: +((t1 - s.ltp) / risk).toFixed(1), rr2: +((t2 - s.ltp) / risk).toFixed(1), note };
+    } else {
+      const slStruct = Math.max(...last3) + 0.3 * s.atr;
+      sl = Math.min(slStruct, s.ltp + 1.3 * s.atr);
+      if (sl - s.ltp < 0.6 * s.atr) sl = s.ltp + 0.6 * s.atr;
+      const risk = sl - s.ltp;
+      t1 = s.ltp - 1.5 * risk;
+      t2 = s.ltp - 2.5 * risk;
+      if (s.min21 < s.ltp * 0.998 && s.min21 > t1) {
+        t1 = s.min21; t2 = s.ltp - 2.2 * risk;
+        note = `T1 capped at 21D low ₹${s.min21} — trail rest only on breakdown`;
+      } else if (s.min21 < t1 && s.min21 > t2) {
+        t2 = s.min21; note = `T2 capped at 21D low ₹${s.min21}`;
+      }
+      return { dir, entry: s.ltp, sl, t1, t2, risk, rr1: +((s.ltp - t1) / risk).toFixed(1), rr2: +((s.ltp - t2) / risk).toFixed(1), note };
+    }
+  }
+
+  function conviction(s, secMap) {
+    let dir = s.pass, score = 0;
+    if (s.pass) score += 10;
+    else {
+      const bp = s.patterns.filter(p => p.dir === 'long' || p.dir === 'short')
+        .sort((a, b) => b.score - a.score)[0];
+      if (!bp || bp.score < 6) return null;
+      const pd = bp.dir === 'long' ? 'LONG' : 'SHORT';
+      if ((pd === 'LONG' && s.m1.out === 'BEARISH') || (pd === 'SHORT' && s.m1.out === 'BULLISH')) return null;
+      if (pd === 'LONG' && /BEARISH/.test(s.m2)) return null;
+      if (pd === 'SHORT' && /BULLISH/.test(s.m2)) return null;
+      dir = pd;
+      score += 3;
+    }
+    const bestP = s.patterns.sort((a, b) => b.score - a.score)[0];
+    if (bestP) score += Math.min(bestP.score * 0.5, 5);
+    score += Math.min(Math.abs(s.m3.score) * 0.6, 3);
+    if (/STRONG/.test(s.m4)) score += 1.5; else if (/READY/.test(s.m4)) score += 0.5;
+    if ((dir === 'LONG' && s.ema === 'GOLDEN') || (dir === 'SHORT' && s.ema === 'DEATH')) score += 1.5;
+    const sec = secMap[s.sector];
+    if (sec) {
+      if ((dir === 'LONG' && sec.net > 10) || (dir === 'SHORT' && sec.net < -10)) score += 2;
+      if ((dir === 'LONG' && sec.net < -20) || (dir === 'SHORT' && sec.net > 20)) score -= 2;
+    }
+    score -= s.traps.length * 1.0;
+    return { dir, score: +score.toFixed(1) };
+  }
+
+  function dayGrade(res) {
+    const b = res.breadth;
+    let clarity = Math.abs(b.bullT - b.bearT) / Math.max(1, b.bullT + b.bearT); // 0..1
+    const trendSide = b.bullT >= b.bearT ? 1 : -1;
+    const daySide = b.adv >= b.dec ? 1 : -1;
+    if (trendSide !== daySide) clarity *= 0.55; // trend vs today's breadth conflict
+    const passes = res.long.length + res.short.length;
+    const setupScore = Math.min(passes, 6) / 6;
+    const all = res.long.concat(res.short);
+    const quality = all.length
+      ? Math.min(all.reduce((a, s) => a + Math.abs(s.m3.score), 0) / all.length / 4, 1) : 0;
+    const score = clarity * 40 + setupScore * 30 + quality * 30;
+    const grade = score >= 62 ? 'A' : score >= 40 ? 'B' : 'C';
+    const side = res.short.length > res.long.length * 1.5 ? 'SHORT'
+      : res.long.length > res.short.length * 1.5 ? 'LONG' : 'BOTH';
+    return { grade, score: +score.toFixed(0), side, passes, clarityConflict: trendSide !== daySide };
+  }
+
+  const origAnalyze = E.analyze;
+  E.analyze = function (rows) {
+    const res = origAnalyze(rows);
+    const secMap = {};
+    res.sectors.forEach(m => secMap[m.sector] = m);
+    res.stocks.forEach(s => {
+      s.atr = atrProxy(s.D, s.ltp);
+      s.traps = trapFlags(s, secMap);
+    });
+    const cands = res.stocks
+      .map(s => { const c = conviction(s, secMap); return c ? { s, ...c } : null; })
+      .filter(Boolean)
+      .sort((a, b) => (b.s.pass ? 1 : 0) - (a.s.pass ? 1 : 0) || b.score - a.score);
+    // confirmed first, then fill with best non-confirmed; cap 5
+    res.today5 = cands.slice(0, 5).map(c => ({ ...c, plan: tradePlan(c.s, c.dir) }));
+    res.grade = dayGrade(res);
+    res.planFor = tradePlan;
+    return res;
+  };
+
+  E.compareSets = function (yRes) {
+    const set = list => new Set(list.map(s => s.symbol));
+    return {
+      long: set(yRes.long), short: set(yRes.short),
+      golden: set(yRes.golden), death: set(yRes.death),
+      watch: new Set(yRes.stocks.filter(s => s.patterns.length).map(s => s.symbol))
+    };
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ═══════════ APP ═══════════ */
+let R = null, Y = null, capital = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = (v,d=2) => v===null||v===undefined ? '—' : (+v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const chgCls = c => c>0 ? 'c-long' : c<0 ? 'c-short' : '';
+const sign = c => c===null||c===undefined?'—':(c>0?'+':'')+c.toFixed(2)+'%';
+
+const drop = $('drop'), fin = $('file'), yin = $('yfile');
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('drag')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('drag')}));
+drop.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) loadFile(f,false); });
+fin.addEventListener('change', () => fin.files[0] && loadFile(fin.files[0],false));
+yin.addEventListener('change', () => yin.files[0] && loadFile(yin.files[0],true));
+$('cap').addEventListener('input', e => { capital = +e.target.value.replace(/[^0-9]/g,'') || null; renderToday5(); });
+
+/* ═══════════ AUTO-LOAD FROM GITHUB ═══════════ */
+const GITHUB_USER = 'varshu22';
+const GITHUB_REPO = 'nifty500-scanner';
+const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/data/nifty500_latest.xlsx`;
+const META_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/data/meta.json`;
+
+async function autoLoadFromGitHub(){
+  try {
+    $('hdate').textContent = 'fetching latest…';
+    const res = await fetch(`${DATA_URL}?t=${Date.now()}`, {cache: 'no-store'});
+    if (!res.ok) throw new Error('GitHub fetch failed (' + res.status + ')');
+    const buffer = await res.arrayBuffer();
+    const wb = XLSX.read(new Uint8Array(buffer), {type:'array'});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:null});
+    if (!rows.length || !('Symbol' in rows[0])) throw new Error('Bad file shape');
+    R = N5Engine.analyze(rows);
+
+    // Show freshness from meta.json
+    try {
+      const metaRes = await fetch(`${META_URL}?t=${Date.now()}`, {cache: 'no-store'});
+      if (metaRes.ok){
+        const meta = await metaRes.json();
+        const d = new Date(meta.updated_at_ist);
+        $('hdate').textContent = 'auto · ' + d.toLocaleString('en-IN',{
+          timeZone:'Asia/Kolkata', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+        }) + ' IST';
+      }
+    } catch(_) {}
+
+    render();
+  } catch(err){
+    console.error('Auto-load failed:', err);
+    $('hdate').textContent = 'upload today\'s file';
+    $('err').textContent = 'Auto-load failed (' + err.message + '). You can still upload manually below.';
+    $('err').style.display='block';
+  }
+}
+
+// Run on page load
+window.addEventListener('DOMContentLoaded', autoLoadFromGitHub);
+
+// Re-fetch every 5 minutes so new GitHub data appears without manual refresh
+setInterval(autoLoadFromGitHub, 5 * 60 * 1000);
+
+function loadFile(f, isYesterday){
+  $('err').style.display='none';
+  const rd = new FileReader();
+  rd.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:null});
+      if (!rows.length || !('Symbol' in rows[0])) throw new Error('No "Symbol" column found — is this the daily scanner export?');
+      if (isYesterday){
+        Y = N5Engine.compareSets(N5Engine.analyze(rows));
+        $('ybtn').textContent = '✓ Comparing with ' + f.name;
+        $('ybtn').style.color = 'var(--long)';
+      } else {
+        const m = f.name.match(/(\d{4}-\d{2}-\d{2})/);
+        $('hdate').textContent = m ? m[1] : f.name;
+        R = N5Engine.analyze(rows);
+      }
+      if (R) render();
+    } catch(err){
+      $('err').textContent = 'Could not read file: ' + err.message;
+      $('err').style.display='block';
+    }
+  };
+  rd.readAsArrayBuffer(f);
+}
+
+function spark(D, w=300, h=34){
+  if (!D || D.length<3) return '';
+  const mn=Math.min(...D), mx=Math.max(...D), rg=mx-mn||1;
+  const pts = D.map((v,i)=>[(i/(D.length-1))*w, h-3-((v-mn)/rg)*(h-6)]);
+  const path = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const col = D[D.length-1] >= D[0] ? 'var(--long)' : 'var(--short)';
+  return `<svg class="spark" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${path} L${w},${h} L0,${h} Z" fill="${col}" opacity="0.09"/>
+    <path d="${path}" fill="none" stroke="${col}" stroke-width="1.6"/></svg>`;
+}
+
+function freshBadge(sym, set){
+  if (!Y || !set) return '';
+  return set.has(sym) ? `<span class="badge brep">2D+</span>` : `<span class="badge bnew">NEW</span>`;
+}
+
+function whyText(s){
+  const tr = s.m1.out==='BULLISH'?'Trend up':s.m1.out==='BEARISH'?'Trend down':'Sideways';
+  return [`${tr} (${s.m1.bull}▲/${s.m1.bear}▼ points, price ${s.ltp>s.ema50?'above':'below'} EMA50)`,
+    `RSI ${s.rsiD?.toFixed(0)}D/${s.rsiW?.toFixed(0)}W ${s.m2.toLowerCase()}`,
+    `candle score ${s.m3.score>0?'+':''}${s.m3.score}`, s.m4.toLowerCase()].join(' · ');
+}
+
+function planGrid(p){
+  if (!p) return '';
+  let qty = '';
+  if (capital && p.risk > 0){
+    const q = Math.floor(capital*0.01/p.risk);
+    if (q>0) qty = `<div class="qty">Qty ≈ ${q.toLocaleString('en-IN')} (risk ₹${fmt(capital*0.01,0)} at 1%)</div>`;
+  }
+  return `<div class="plan">
+    <div><div class="pl">Entry</div><div class="pv mono">₹${fmt(p.entry)}</div><div class="pr">near LTP</div></div>
+    <div><div class="pl">Stop</div><div class="pv mono c-short">₹${fmt(p.sl)}</div><div class="pr">−₹${fmt(p.risk)}</div></div>
+    <div><div class="pl">T1</div><div class="pv mono c-long">₹${fmt(p.t1)}</div><div class="pr">${p.rr1}R</div></div>
+    <div><div class="pl">T2</div><div class="pv mono c-long">₹${fmt(p.t2)}</div><div class="pr">${p.rr2}R</div></div>
+  </div>${qty}${p.note?`<div class="pnote">↳ ${esc(p.note)}</div>`:''}`;
+}
+
+function t5Card(c, i){
+  const s = c.s, dirCls = c.dir==='SHORT'?'short':'';
+  const ySet = c.dir==='LONG' ? (Y&&Y.long) : (Y&&Y.short);
+  return `<div class="t5 ${dirCls}" onclick="openSheet('${esc(s.symbol)}')">
+    <span class="rank">#${i+1} · CONV ${c.score}</span>
+    <div class="prow">
+      <span class="psym mono">${esc(s.symbol)}</span>
+      <span class="chip ${c.dir==='LONG'?'on-long':'on-short'}">${c.dir}${s.pass?' · CONFIRMED':' · PATTERN'}</span>
+      ${s.pass?freshBadge(s.symbol,ySet):''}
+    </div>
+    <div class="prow" style="margin-top:5px">
+      <span class="psec">${esc(s.sector)}</span>
+      <div class="pltp mono"><span class="v">₹${fmt(s.ltp)}</span> <span class="c ${chgCls(s.chg)}">${sign(s.chg)}</span></div>
+    </div>
+    <div class="why" style="margin-top:8px">${esc(whyText(s))}</div>
+    ${planGrid(c.plan)}
+    ${s.traps.map(t=>`<div class="trap">${esc(t)}</div>`).join('')}
+  </div>`;
+}
+
+function renderToday5(){
+  if (!R) return;
+  $('cT5').textContent = R.today5.length + ' picks';
+  $('today5').innerHTML = R.today5.length
+    ? R.today5.map(t5Card).join('')
+    : `<div class="empty">No name earned a spot today. That's the system working — protect capital, review patterns instead.</div>`;
+}
+
+function pickCard(s, side){
+  const ySet = side==='LONG' ? (Y&&Y.long) : (Y&&Y.short);
+  return `<div class="pick ${side==='SHORT'?'short':''}" onclick="openSheet('${esc(s.symbol)}')">
+    <div class="prow">
+      <span class="psym mono">${esc(s.symbol)}</span>
+      ${freshBadge(s.symbol,ySet)}
+      <span class="psec">${esc(s.sector)}</span>
+      <div class="pltp mono"><div class="v">₹${fmt(s.ltp)}</div><div class="c ${chgCls(s.chg)}">${sign(s.chg)}</div></div>
+    </div>
+    ${spark(s.D)}
+    <div class="why">${esc(whyText(s))}</div>
+    ${s.traps.map(t=>`<div class="trap">${esc(t)}</div>`).join('')}
+    <div class="chips">
+      <span class="chip ${s.m1.out==='BULLISH'?'on-long':s.m1.out==='BEARISH'?'on-short':''}">M1 ${s.m1.out}</span>
+      <span class="chip ${/BULL/.test(s.m2)?'on-long':/BEAR/.test(s.m2)?'on-short':''}">M2 ${s.m2}</span>
+      <span class="chip ${s.m3.out.includes('BULLISH')?'on-long':s.m3.out.includes('BEARISH')?'on-short':''}">M3 ${s.m3.score>0?'+':''}${s.m3.score}</span>
+      <span class="chip ${/LONG/.test(s.m4)?'on-long':/SHORT/.test(s.m4)?'on-short':''}">M4 ${s.m4}</span>
+      ${s.patterns.map(p=>`<span class="chip on-gold">${p.name}</span>`).join('')}
+    </div>
+  </div>`;
+}
+
+function rowItem(s, tagHtml, rightTop, rightSub, badge){
+  return `<div class="row" onclick="openSheet('${esc(s.symbol)}')">
+    <span class="sym mono">${esc(s.symbol)}${badge?' '+badge:''}</span>
+    <span class="tag">${tagHtml}</span>
+    <span class="right mono"><div class="rv">${rightTop}</div><div class="rs">${rightSub||''}</div></span>
+  </div>`;
+}
+
+function rowsBlock(list, renderFn, limit=8){
+  if (!list.length) return `<div class="empty">Nothing in this bucket today.</div>`;
+  const id = 'rb'+Math.random().toString(36).slice(2,8);
+  let html = `<div class="rows" id="${id}">` + list.slice(0,limit).map(renderFn).join('');
+  if (list.length>limit){
+    window['__more_'+id] = () => {
+      const el = $(id);
+      el.querySelector('.more').remove();
+      el.insertAdjacentHTML('beforeend', list.slice(limit).map(renderFn).join(''));
+    };
+    html += `<button class="more" onclick="window['__more_${id}']()">Show all ${list.length}</button>`;
+  }
+  return html + '</div>';
+}
+
+function acc(title, dotColor, list, renderFn, open=false){
+  return `<details class="acc" ${open?'open':''}><summary>
+    <span class="dot" style="background:${dotColor}"></span>${title}
+    <span class="cnt">${list.length}</span><span class="chev">▶</span></summary>
+    <div style="padding:0 8px 10px">${rowsBlock(list, renderFn)}</div></details>`;
+}
+
+function render(){
+  const b = R.breadth, g = R.grade;
+  $('results').style.display='block';
+  $('q').style.display='block';
+  drop.style.display='none';
+
+  /* grade chip + guard */
+  $('gchip').className = 'gradechip g'+g.grade;
+  $('gchip').textContent = `DAY GRADE ${g.grade}${g.side!=='BOTH'?' · '+g.side+' SIDE':''}`;
+  const guard = $('guard');
+  if (g.grade==='C' || g.passes===0){
+    guard.className='guard stop'; guard.style.display='block';
+    guard.innerHTML = g.passes===0
+      ? `🛑 No clean confluence today. Standing aside <i>is</i> the trade — log it as a disciplined no-trade day.`
+      : `🛑 Grade C tape — muddled breadth, weak setups. If you must trade: half size, first 2 picks only, stop after one loss.`;
+  } else if (g.grade==='B'){
+    guard.className='guard go'; guard.style.display='block';
+    guard.innerHTML = `⚖️ Grade B — tradeable but not generous. Stick to Today's 5${g.side!=='BOTH'?', favour the '+g.side+' side':''}, normal size, no revenge adds.`;
+  } else {
+    guard.className='guard go'; guard.style.display='block';
+    guard.innerHTML = `✅ Grade A — clear tape${g.side!=='BOTH'?', edge on the '+g.side+' side':''}. Full plan execution; your only job is following the stops.`;
+  }
+  if (g.clarityConflict) guard.innerHTML += ` <span class="c-amber">Note: today's advance/decline conflicts with the trend majority — expect chop.</span>`;
+
+  /* verdict text */
+  const tone = b.bearT > b.bullT*1.5 ? 'bear' : b.bullT > b.bearT*1.5 ? 'bull' : 'mixed';
+  const topSec = R.sectors[0], botSec = R.sectors[R.sectors.length-1];
+  let v = tone==='bear' ? `<b class="c-short">Sellers in control.</b> ` : tone==='bull' ? `<b class="c-long">Buyers in control.</b> ` : `<b class="c-gold">Two-sided tape.</b> `;
+  v += `${b.bullT} bullish trend vs <b>${b.bearT} bearish</b>, ${b.aboveE50pct.toFixed(0)}% above EMA50, breadth ${b.adv}▲/${b.dec}▼, avg RSI ${b.avgRsi.toFixed(0)}. `;
+  if (topSec) v += `Strongest: <b class="c-long">${esc(topSec.sector)}</b> (+${topSec.net.toFixed(0)}%). `;
+  if (botSec && botSec.net<0) v += `Weakest: <b class="c-short">${esc(botSec.sector)}</b> (${botSec.net.toFixed(0)}%). `;
+  v += `Confluence: <b>${R.long.length} long</b> / <b>${R.short.length} short</b>.`;
+  $('vtext').innerHTML = v;
+
+  /* what changed vs yesterday */
+  const ch = $('changed');
+  if (Y){
+    const newL = R.long.filter(s=>!Y.long.has(s.symbol)).map(s=>s.symbol);
+    const newS = R.short.filter(s=>!Y.short.has(s.symbol)).map(s=>s.symbol);
+    const newG = R.golden.filter(s=>!Y.golden.has(s.symbol)).length;
+    const newD = R.death.filter(s=>!Y.death.has(s.symbol)).length;
+    const dropL = [...Y.long].filter(x=>!R.long.some(s=>s.symbol===x));
+    const dropS = [...Y.short].filter(x=>!R.short.some(s=>s.symbol===x));
+    ch.style.display='block';
+    ch.innerHTML = `<b>Since yesterday:</b> ${newL.length} new long${newL.length?' ('+newL.map(esc).join(', ')+')':''} · ${newS.length} new short${newS.length&&newS.length<=6?' ('+newS.map(esc).join(', ')+')':''} · ${newG} fresh golden / ${newD} fresh death crosses.`
+      + (dropL.length||dropS.length ? `<br><b>Dropped from confirmed:</b> ${dropL.concat(dropS).map(esc).join(', ')} — setups gone, don't carry yesterday's bias.` : '');
+  } else ch.style.display='none';
+
+  const lp = b.bullT/(b.bullT+b.bearT||1)*100;
+  $('pbar').innerHTML = `<i style="width:${lp}%;background:var(--long)"></i><i style="flex:1;background:var(--short)"></i>`;
+  $('plL').textContent = `bullish trend ${b.bullT}`;
+  $('plR').textContent = `${b.bearT} bearish trend`;
+  $('vstats').innerHTML = [
+    [b.total,'scanned',''], [R.long.length,'long pass','c-long'], [R.short.length,'short pass','c-short'],
+    [R.golden.length+'/'+R.death.length,'gold / death','c-gold']
+  ].map(x=>`<div><div class="n mono ${x[2]}">${x[0]}</div><div class="l">${x[1]}</div></div>`).join('');
+
+  renderToday5();
+
+  $('cLong').textContent = R.long.length + ' pass';
+  $('cShort').textContent = R.short.length + ' pass';
+  $('longs').innerHTML = R.long.length ? R.long.map(s=>pickCard(s,'LONG')).join('') : `<div class="empty">No stock cleared all 4 modules for a long today. The filter is strict by design — no setup is a signal too.</div>`;
+  $('shorts').innerHTML = R.short.length ? R.short.map(s=>pickCard(s,'SHORT')).join('') : `<div class="empty">No clean short confluence today.</div>`;
+
+  const best = {};
+  R.stocks.forEach(s => s.patterns.forEach(p => {
+    if (!best[s.symbol] || p.score > best[s.symbol].p.score) best[s.symbol] = {s,p};
+  }));
+  const watch = Object.values(best).sort((a,b)=>b.p.score-a.p.score).slice(0,30);
+  $('cWatch').textContent = watch.length ? 'top '+Math.min(watch.length,30) : '0';
+  $('watch').innerHTML = rowsBlock(watch, w =>
+    rowItem(w.s, `<span class="${w.p.dir==='long'?'c-long':w.p.dir==='short'?'c-short':'c-gold'}">${esc(w.p.name)}</span> · ${esc(w.p.detail)}`,
+      'S '+w.p.score, `₹${fmt(w.s.ltp)} <span class="${chgCls(w.s.chg)}">${sign(w.s.chg)}</span>`,
+      freshBadge(w.s.symbol, Y&&Y.watch)), 8);
+
+  const emaRow = ySet => s => rowItem(s, `${esc(s.sector)} · RSI ${s.rsiD?.toFixed(0)} · ${esc(s.m2)}`,
+    (s.emaDelta>0?'+':'')+s.emaDelta.toFixed(2)+'%', `₹${fmt(s.ltp)} <span class="${chgCls(s.chg)}">${sign(s.chg)}</span>`,
+    freshBadge(s.symbol, ySet));
+  $('emaAcc').innerHTML =
+    acc('🟡 Golden Cross — EMA9 just crossed above EMA50','var(--gold)',R.golden,emaRow(Y&&Y.golden),true)+
+    acc('🔴 Death Cross — EMA9 just crossed below EMA50','var(--short)',R.death,emaRow(Y&&Y.death),true)+
+    acc('📈 Bull Alignment — established uptrend','var(--long)',R.bullAlign,emaRow(null))+
+    acc('📉 Bear Alignment — established downtrend','#FF8296',R.bearAlign,emaRow(null));
+
+  const meta = {cup:['☕ Cup & Handle','#FFD166'],vrec:['⚡ V-Recovery','#3D9EFF'],rect:['▬ Rectangle Range','var(--violet)'],
+    asc:['📐 Ascending Triangle','var(--teal)'],desc:['▽ Descending Triangle','#FFB547'],
+    bo:['🚀 Breakout Watch','var(--long)'],bd:['💥 Breakdown Watch','var(--short)']};
+  const pRow = x => rowItem(x.s, esc(x.p.detail), 'S '+x.p.score, `RSI ${x.s.rsiD?.toFixed(0)} · <span class="${chgCls(x.s.chg)}">${sign(x.s.chg)}</span>`);
+  $('patAcc').innerHTML = ['bo','cup','asc','vrec','rect','bd','desc']
+    .map(id => acc(meta[id][0], meta[id][1], R.patternBuckets[id], pRow)).join('');
+
+  $('sectors').innerHTML = R.sectors.map(m=>{
+    const w = Math.min(Math.abs(m.net),100)/2;
+    const bar = m.net>=0
+      ? `<i style="left:50%;width:${w}%;background:var(--long)"></i>`
+      : `<i style="right:50%;width:${w}%;background:var(--short)"></i>`;
+    return `<div class="sec-row"><span class="nm">${esc(m.sector)}</span>
+      <span class="sec-bar">${bar}</span>
+      <span class="pct mono ${m.net>=0?'c-long':'c-short'}">${m.net>0?'+':''}${m.net.toFixed(0)}%</span></div>`;
+  }).join('');
+
+  window.scrollTo({top:0});
+}
+
+$('q').addEventListener('keydown', e=>{
+  if (e.key==='Enter' && R){
+    const t = e.target.value.trim().toUpperCase();
+    const s = R.stocks.find(x=>x.symbol===t) || R.stocks.find(x=>x.symbol.startsWith(t)) || R.stocks.find(x=>x.symbol.includes(t));
+    if (s) { openSheet(s.symbol); e.target.blur(); }
+  }
+});
+
+const candleIcon = c => /bullish marubozu/i.test(c)?'🟩':/bearish marubozu/i.test(c)?'🟥':/bullish/i.test(c)?'▲':/bearish/i.test(c)?'▼':/hammer/i.test(c)?'🔨':/shooting/i.test(c)?'☄️':/doji/i.test(c)?'✚':'·';
+const candleCls = c => /bullish|hammer/i.test(c)?'c-long':/bearish|shooting/i.test(c)?'c-short':'';
+function rsiBar(v, hi, lo){
+  if (v===null) return '—';
+  const col = v>hi?'var(--long)':v<lo?'var(--short)':'var(--gold)';
+  return `<div class="rsibar"><i style="width:${Math.min(v,100)}%;background:${col}"></i><b style="left:${lo}%"></b><b style="left:${hi}%"></b></div>`;
+}
+
+function openSheet(sym){
+  const s = R.stocks.find(x=>x.symbol===sym); if (!s) return;
+  const modCol = o => /BULL|LONG/.test(o)?'var(--long)':/BEAR|SHORT/.test(o)?'var(--short)':'var(--faint)';
+  const dates = R.candleDates.map(c=>c.split('_')[1]||'');
+  const dir = s.pass || (s.m1.out==='BULLISH'?'LONG':s.m1.out==='BEARISH'?'SHORT':null);
+  const plan = dir ? R.planFor(s, dir) : null;
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sh-head">
+      <h2 class="mono">${esc(s.symbol)}</h2>
+      <span class="psec">${esc(s.sector)}</span>
+      <span class="mono" style="margin-left:auto;font-weight:600">₹${fmt(s.ltp)} <span class="${chgCls(s.chg)}">${sign(s.chg)}</span></span>
+    </div>
+    ${spark(s.D, 320, 56)}
+    <div class="modgrid">
+      <div class="mod" style="border-top-color:${modCol(s.m1.out)}"><div class="ml">M1 · Trend</div><div class="mv">${s.m1.out}</div><div class="ms">${s.m1.bull} bull / ${s.m1.bear} bear points</div></div>
+      <div class="mod" style="border-top-color:${modCol(s.m2)}"><div class="ml">M2 · Momentum</div><div class="mv">${s.m2}</div><div class="ms">RSI ${s.rsiD?.toFixed(1)}D · ${s.rsiW?.toFixed(1)}W</div></div>
+      <div class="mod" style="border-top-color:${modCol(s.m3.out)}"><div class="ml">M3 · Candles</div><div class="mv">${s.m3.out}</div><div class="ms">weighted score ${s.m3.score>0?'+':''}${s.m3.score}</div></div>
+      <div class="mod" style="border-top-color:${modCol(s.m4)}"><div class="ml">M4 · Intraday</div><div class="mv">${s.m4}</div><div class="ms">${s.openLow?'Open=Low':''}${s.openHigh?'Open=High':''} ${esc(s.last30||s.dayCandle)}</div></div>
+    </div>
+    ${s.pass?`<div class="patbox" style="border-color:${s.pass==='LONG'?'var(--long)':'var(--short)'};background:${s.pass==='LONG'?'rgba(39,219,146,.08)':'rgba(255,84,112,.08)'}"><b class="${s.pass==='LONG'?'c-long':'c-short'}">✓ Confirmed ${s.pass}</b> — all four modules aligned, RSI within limits.</div>`:''}
+    ${plan?`<h4 class="sub">Trade plan (${dir.toLowerCase()}, from closing data)</h4>${planGrid(plan)}`:''}
+    ${s.traps.length?`<div class="trapbox">${s.traps.map(t=>'⚠ '+esc(t)).join('<br>')}</div>`:''}
+    <h4 class="sub">RSI Daily ${s.rsiD?.toFixed(1)??'—'}</h4>${rsiBar(s.rsiD,60,40)}
+    <h4 class="sub">RSI Weekly ${s.rsiW?.toFixed(1)??'—'}</h4>${rsiBar(s.rsiW,55,45)}
+    <h4 class="sub">Last 4 daily candles</h4>
+    <div class="cstrip">${s.candles.map((c,i)=>`<div class="cbox"><div class="ci ${candleCls(c)}">${candleIcon(c)}</div><div class="cl">${esc(dates[i]||'C'+(i+1))}<br>${esc(c||'—')}</div></div>`).join('')}</div>
+    ${s.patterns.length?`<h4 class="sub">Patterns detected</h4>`+s.patterns.map(p=>`<div class="patbox"><b class="c-teal">${esc(p.name)}</b> · score ${p.score}<br>${esc(p.detail)}</div>`).join(''):''}
+    ${s.remark?`<div class="rembox">📌 ${esc(s.remark)}</div>`:''}
+    <h4 class="sub">Levels</h4>
+    <div class="kv"><span>21-day high / low</span><span class="mono">₹${fmt(s.max21)} / ₹${fmt(s.min21)}</span></div>
+    <div class="kv"><span>Distance to high / low</span><span class="mono">${sign(s.gapMax)} / ${sign(s.gapMin)}</span></div>
+    <div class="kv"><span>EMA9 / EMA50</span><span class="mono">₹${fmt(s.ema9)} / ₹${fmt(s.ema50)} (${(s.emaDelta>0?'+':'')+s.emaDelta?.toFixed(2)}%)</span></div>
+    <div class="kv"><span>Avg daily range (close proxy)</span><span class="mono">₹${fmt(s.atr)}</span></div>
+    <div class="kv"><span>21-day position</span><span>${esc(s.pos||'—')}</span></div>`;
+  $('overlay').style.display='block';
+  requestAnimationFrame(()=>$('sheet').classList.add('open'));
+  document.body.style.overflow='hidden';
+}
+function closeSheet(){
+  $('sheet').classList.remove('open');
+  $('overlay').style.display='none';
+  document.body.style.overflow='';
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeSheet(); });
+</script>
+</body>
+</html>
