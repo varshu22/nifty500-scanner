@@ -749,7 +749,7 @@ async function autoLoadFromGitHub(){
 window.addEventListener('DOMContentLoaded', autoLoadFromGitHub);
 
 // Re-fetch every 5 minutes so new GitHub data appears without manual refresh
-setInterval(autoLoadFromGitHub, 5 * 60 * 1000);
+setInterval(autoLoadFromGitHub, 3 * 60 * 1000);
 
 function loadFile(f, isYesterday){
   $('err').style.display='none';
