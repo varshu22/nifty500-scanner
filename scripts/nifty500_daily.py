@@ -262,28 +262,11 @@ df = df[ordered_cols]
 import os
 import json
 
-os.makedirs("data/archive", exist_ok=True)
+os.makedirs("data", exist_ok=True)
 
-# Stable file the dashboard will fetch
+# Stable file the dashboard fetches
 df.to_excel("data/nifty500_latest.xlsx", index=False)
 
-# Dated archive copy (optional history)
-today_date = datetime.now(IST).strftime("%Y-%m-%d")
-df.to_excel(f"data/archive/nifty500_daily_scanner_{today_date}.xlsx", index=False)
-# Delete archive files older than 7 days
-import glob
-cutoff = datetime.now(IST) - timedelta(days=7)
-for f in glob.glob("data/archive/nifty500_daily_scanner_*.xlsx"):
-    try:
-        # Extract date from filename: nifty500_daily_scanner_2026-06-20.xlsx
-        date_str = f.split("_")[-1].replace(".xlsx", "")
-        file_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=IST)
-        if file_date < cutoff:
-            os.remove(f)
-            print(f"Deleted old archive: {f}")
-    except Exception as e:
-        print(f"Skipped {f}: {e}")
-        
 # Freshness info for dashboard
 with open("data/meta.json", "w") as f:
     json.dump({
